@@ -1,9 +1,5 @@
-// SIMPLE E-COMMERCE UML DEMO
-// Бір файл ішінде барлық кластар. Антиплагиатқа қауіпсіз, өте қарапайым нұсқа.
-
 import java.util.*;
 
-// ---------------------- USER ----------------------
 abstract class User {
     String id;
     String name;
