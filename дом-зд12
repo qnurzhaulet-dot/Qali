@@ -1,0 +1,217 @@
+import java.util.*;
+import java.util.concurrent.*;
+
+class HiringRequest {
+    String id;
+    String title;
+    String description;
+    boolean approved = false;
+    HiringRequest(String id, String title, String description) { this.id = id; this.title = title; this.description = description; }
+}
+
+class Candidate {
+    String id;
+    String name;
+    boolean passedCv = false;
+    boolean passedHr = false;
+    boolean passedTech = false;
+    Candidate(String id, String name) { this.id = id; this.name = name; }
+}
+
+class HRDepartment {
+    List<Candidate> reviewApplications(List<Candidate> candidates) {
+        List<Candidate> good = new ArrayList<>();
+        for (Candidate c : candidates) {
+            if (c.name.length() % 2 == 0) {
+                c.passedCv = true;
+                good.add(c);
+            }
+        }
+        return good;
+    }
+    boolean approveRequest(HiringRequest r) {
+        return r.title != null && r.title.length() > 3;
+    }
+    void notifyManagerForRevision(HiringRequest r) {
+        System.out.println("HR: request " + r.id + " needs revision");
+    }
+}
+
+class Manager {
+    String id;
+    String name;
+    Manager(String id, String name) { this.id = id; this.name = name; }
+    HiringRequest createRequest(String id, String title, String desc) { return new HiringRequest(id, title, desc); }
+    void conductTechInterview(Candidate c) {
+        c.passedTech = c.name.hashCode() % 3 != 0;
+    }
+    void receiveRevision(HiringRequest r) { System.out.println("Manager: revised request " + r.id); }
+}
+
+class SystemStorage {
+    List<String> employees = new ArrayList<>();
+    void addEmployee(Candidate c) { employees.add(c.name); System.out.println("System: added employee " + c.name); }
+}
+
+class ITDepartment {
+    void setupWorkspace(Candidate c) { System.out.println("IT: setup workspace for " + c.name); }
+}
+
+class HiringProcess {
+    Manager manager;
+    HRDepartment hr;
+    ITDepartment it;
+    SystemStorage storage;
+    HiringProcess(Manager m, HRDepartment hr, ITDepartment it, SystemStorage s) { this.manager = m; this.hr = hr; this.it = it; this.storage = s; }
+    void runProcess() {
+        HiringRequest r = manager.createRequest("R1", "Senior Java Developer", "Need backend dev");
+        System.out.println("Manager created request " + r.id);
+        boolean approved = hr.approveRequest(r);
+        if (!approved) {
+            hr.notifyManagerForRevision(r);
+            manager.receiveRevision(r);
+            r.title = r.title + " (revised)";
+            approved = hr.approveRequest(r);
+        }
+        System.out.println("Request approved: " + approved);
+        if (!approved) return;
+        r.approved = true;
+        System.out.println("Publishing vacancy");
+        List<Candidate> applicants = Arrays.asList(new Candidate("C1","Alice"), new Candidate("C2","Bob"), new Candidate("C3","Carol"), new Candidate("C4","Dave"));
+        System.out.println("Applicants submitted: " + applicants.size());
+        List<Candidate> passedCv = hr.reviewApplications(applicants);
+        System.out.println("Passed CV stage: " + passedCv.size());
+        List<Candidate> invited = new ArrayList<>();
+        for (Candidate c : passedCv) {
+            if (c.passedCv) {
+                c.passedHr = true;
+                invited.add(c);
+                System.out.println("HR invites " + c.name);
+            }
+        }
+        for (Candidate c : invited) {
+            System.out.println("HR conducts initial interview for " + c.name);
+            manager.conductTechInterview(c);
+            System.out.println("Manager conducted tech interview for " + c.name + " result tech=" + c.passedTech);
+        }
+        for (Candidate c : invited) {
+            if (c.passedHr && c.passedTech) {
+                System.out.println("Offer sent to " + c.name);
+                boolean accepts = c.name.length() % 2 == 1;
+                if (accepts) {
+                    System.out.println(c.name + " accepted offer");
+                    storage.addEmployee(c);
+                    it.setupWorkspace(c);
+                } else {
+                    System.out.println(c.name + " declined offer");
+                }
+            } else {
+                System.out.println("Candidate " + c.name + " rejected");
+            }
+        }
+        System.out.println("Hiring process finished");
+    }
+}
+
+class Venue {
+    String id;
+    String name;
+    Map<String, Boolean> availability = new HashMap<>();
+    Venue(String id, String name) { this.id = id; this.name = name; }
+    void setAvailable(String date, boolean avail) { availability.put(date, avail); }
+    boolean isAvailable(String date) { return availability.getOrDefault(date, false); }
+}
+
+class PaymentGateway {
+    boolean charge(double amount) { return amount % 2 < 1.5; }
+}
+
+class Contractor {
+    String id;
+    String name;
+    Contractor(String id, String name) { this.id = id; this.name = name; }
+    void notifyTask(String task) { System.out.println("Contractor " + name + " received task: " + task); try { Thread.sleep(200); } catch (Exception e) {} }
+    boolean confirmDone() { return true; }
+}
+
+class AdministratorVenue {
+    String id;
+    String name;
+    AdministratorVenue(String id, String name) { this.id = id; this.name = name; }
+    List<String> prepareTasks() { return Arrays.asList("Decor", "Catering", "Sound"); }
+}
+
+class BookingSystem {
+    Venue venue;
+    PaymentGateway gateway;
+    BookingSystem(Venue v, PaymentGateway g) { this.venue = v; this.gateway = g; }
+    boolean checkAvailability(String date) { return venue.isAvailable(date); }
+    boolean processBooking(String date, double amount) {
+        return gateway.charge(amount);
+    }
+    void notifyClient(String message) { System.out.println("Notify client: " + message); }
+    void notifyAdmin(String message) { System.out.println("Notify admin: " + message); }
+}
+
+class BookingProcess {
+    BookingSystem system;
+    AdministratorVenue admin;
+    List<Contractor> contractors;
+    BookingProcess(BookingSystem system, AdministratorVenue admin, List<Contractor> contractors) { this.system = system; this.admin = admin; this.contractors = contractors; }
+    void runBooking(String date, double amount) {
+        System.out.println("Client requests date " + date);
+        boolean avail = system.checkAvailability(date);
+        if (!avail) {
+            system.notifyClient("Venue not available on " + date);
+            return;
+        }
+        system.notifyClient("Venue available. Price: " + amount);
+        boolean paid = system.processBooking(date, amount);
+        if (!paid) {
+            system.notifyClient("Payment failed. Try again");
+            return;
+        }
+        system.notifyClient("Payment successful. Booking confirmed");
+        system.notifyAdmin("Booking confirmed for " + date);
+        List<String> tasks = admin.prepareTasks();
+        ExecutorService ex = Executors.newFixedThreadPool(contractors.size());
+        for (int i = 0; i < contractors.size(); i++) {
+            final Contractor c = contractors.get(i);
+            final String task = tasks.get(i % tasks.size());
+            ex.submit(() -> {
+                c.notifyTask(task);
+                System.out.println("Contractor " + c.name + " completed " + task);
+            });
+        }
+        ex.shutdown();
+        try { ex.awaitTermination(5, TimeUnit.SECONDS); } catch (InterruptedException e) {}
+        system.notifyAdmin("All tasks reported");
+        system.notifyClient("Please rate the event after completion");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Manager manager = new Manager("M1","Manager1");
+        HRDepartment hr = new HRDepartment();
+        ITDepartment it = new ITDepartment();
+        SystemStorage storage = new SystemStorage();
+        HiringProcess hp = new HiringProcess(manager, hr, it, storage);
+        System.out.println("=== Hiring Process ===");
+        hp.runProcess();
+        System.out.println();
+        Venue v = new Venue("V1","Grand Hall");
+        v.setAvailable("2025-12-10", true);
+        v.setAvailable("2025-12-11", false);
+        PaymentGateway pg = new PaymentGateway();
+        BookingSystem bs = new BookingSystem(v, pg);
+        AdministratorVenue admin = new AdministratorVenue("A1","VenueAdmin");
+        List<Contractor> contractors = Arrays.asList(new Contractor("CT1","AliceCo"), new Contractor("CT2","BobFix"), new Contractor("CT3","CarolServe"));
+        BookingProcess bp = new BookingProcess(bs, admin, contractors);
+        System.out.println("=== Booking Process (date available) ===");
+        bp.runBooking("2025-12-10", 1000.0);
+        System.out.println();
+        System.out.println("=== Booking Process (date not available) ===");
+        bp.runBooking("2025-12-11", 1000.0);
+    }
+}
