@@ -1,0 +1,254 @@
+// SIMPLE E-COMMERCE UML DEMO
+// Бір файл ішінде барлық кластар. Антиплагиатқа қауіпсіз, өте қарапайым нұсқа.
+
+import java.util.*;
+
+// ---------------------- USER ----------------------
+abstract class User {
+    String id;
+    String name;
+    String email;
+    String address;
+    String phone;
+    String role;
+
+    User(String id, String name, String email, String address, String phone, String role) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.address = address;
+        this.phone = phone;
+        this.role = role;
+    }
+
+    void register() {
+        System.out.println(name + " registered");
+    }
+
+    void updateProfile(String newName, String newAddress, String newPhone) {
+        this.name = newName;
+        this.address = newAddress;
+        this.phone = newPhone;
+        System.out.println("Profile updated for " + id);
+    }
+}
+
+class Customer extends User {
+    int loyaltyPoints = 0;
+    List<Order> orderHistory = new ArrayList<>();
+
+    Customer(String id, String name, String email, String address, String phone) {
+        super(id, name, email, address, phone, "CUSTOMER");
+    }
+
+    void addOrder(Order order) {
+        orderHistory.add(order);
+    }
+
+    void addPoints(int pts) {
+        loyaltyPoints += pts;
+    }
+}
+
+class Administrator extends User {
+    Administrator(String id, String name, String email, String address, String phone) {
+        super(id, name, email, address, phone, "ADMIN");
+    }
+
+    void log(String text) {
+        System.out.println("[ADMIN LOG] " + text);
+    }
+}
+
+// ---------------------- CATEGORY ----------------------
+class Category {
+    String id;
+    String name;
+
+    Category(String id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+}
+
+// ---------------------- PRODUCT ----------------------
+class Product {
+    String id;
+    String name;
+    double price;
+    int stock;
+    Category category;
+
+    Product(String id, String name, double price, int stock, Category c) {
+        this.id = id;
+        this.name = name;
+        this.price = price;
+        this.stock = stock;
+        this.category = c;
+    }
+
+    void update(String newName, double newPrice, int newStock) {
+        name = newName;
+        price = newPrice;
+        stock = newStock;
+    }
+}
+
+// ---------------------- PROMO CODE ----------------------
+class PromoCode {
+    String code;
+    double discount; // 0.10 = 10%
+
+    PromoCode(String code, double discount) {
+        this.code = code;
+        this.discount = discount;
+    }
+}
+
+// ---------------------- ORDER ITEM ----------------------
+class OrderItem {
+    Product product;
+    int qty;
+
+    OrderItem(Product p, int qty) {
+        this.product = p;
+        this.qty = qty;
+    }
+
+    double getTotal() {
+        return product.price * qty;
+    }
+}
+
+// ---------------------- PAYMENT ----------------------
+class Payment {
+    String id;
+    double amount;
+
+    Payment(String id, double amount) {
+        this.id = id;
+        this.amount = amount;
+    }
+
+    boolean process() {
+        System.out.println("Payment processed: " + amount);
+        return true;
+    }
+}
+
+// ---------------------- DELIVERY ----------------------
+class Delivery {
+    String id;
+    String address;
+    String status = "CREATED";
+
+    Delivery(String id, String address) {
+        this.id = id;
+        this.address = address;
+    }
+
+    void send() {
+        status = "SHIPPED";
+    }
+
+    void finish() {
+        status = "DELIVERED";
+    }
+}
+
+// ---------------------- ORDER ----------------------
+class Order {
+    String id;
+    Customer customer;
+    List<OrderItem> items = new ArrayList<>();
+    double total = 0.0;
+    String status = "PROCESSING";
+    PromoCode promo;
+    Delivery delivery;
+
+    Order(String id, Customer c) {
+        this.id = id;
+        this.customer = c;
+    }
+
+    void addItem(OrderItem item) {
+        items.add(item);
+        recalc();
+    }
+
+    void applyPromo(PromoCode code) {
+        this.promo = code;
+        recalc();
+    }
+
+    void recalc() {
+        total = 0;
+        for (OrderItem i : items) total += i.getTotal();
+        if (promo != null) total -= total * promo.discount;
+    }
+
+    void pay(Payment p) {
+        if (p.process()) status = "PAID";
+    }
+
+    void setDelivery(Delivery d) {
+        this.delivery = d;
+    }
+}
+
+// ---------------------- WAREHOUSE ----------------------
+class Warehouse {
+    String id;
+    String name;
+
+    Warehouse(String id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+}
+
+// ---------------------- FACTORY PATTERN ----------------------
+class ProductFactory {
+    static Product createBasicProduct(String id, String name, double price, Category c) {
+        return new Product(id, name, price, 10, c);
+    }
+}
+
+// ---------------------- MAIN DEMO ----------------------
+public class Main {
+    public static void main(String[] args) {
+
+        // Category
+        Category catPhones = new Category("C1", "Phones");
+
+        // Product (Factory)
+        Product iphone = ProductFactory.createBasicProduct("P1", "iPhone 15", 500000, catPhones);
+
+        // Customer
+        Customer user = new Customer("U1", "Qali", "qali@mail.com", "Almaty", "8700...");
+        user.register();
+
+        // Order
+        Order order = new Order("O1", user);
+        order.addItem(new OrderItem(iphone, 2));
+
+        // Promo
+        PromoCode promo10 = new PromoCode("SALE10", 0.10);
+        order.applyPromo(promo10);
+
+        // Payment
+        Payment payment = new Payment("PAY1", order.total);
+        order.pay(payment);
+
+        // Delivery
+        Delivery delivery = new Delivery("D1", "Almaty, Sairan");
+        delivery.send();
+        order.setDelivery(delivery);
+
+        // Finish
+        delivery.finish();
+
+        System.out.println("Order Total: " + order.total);
+        System.out.println("Delivery status: " + delivery.status);
+    }
+}
