@@ -1,0 +1,194 @@
+public class Main {
+
+    public interface VendingMachineState {
+        void selectTicket();
+        void insertMoney(double amount);
+        void dispenseTicket();
+        void cancelTransaction();
+    }
+
+    public static class TicketVendingMachine {
+        
+        private final VendingMachineState idleState;
+        private final VendingMachineState waitingForMoneyState;
+        private final VendingMachineState moneyReceivedState;
+        private final VendingMachineState ticketDispensedState;
+        private final VendingMachineState transactionCanceledState;
+
+        private VendingMachineState currentState;
+        
+        private final double TICKET_PRICE = 500.0;
+        private double currentBalance = 0.0;
+        
+        public TicketVendingMachine() {
+            idleState = new IdleState(this);
+            waitingForMoneyState = new WaitingForMoneyState(this);
+            moneyReceivedState = new MoneyReceivedState(this);
+            ticketDispensedState = new TicketDispensedState(this);
+            transactionCanceledState = new TransactionCanceledState(this);
+            
+            currentState = idleState;
+            System.out.println("Автомат іске қосылды. Бастапқы күй: " + currentState.getClass().getSimpleName().replace("State", ""));
+        }
+
+        public void setState(VendingMachineState newState) {
+            System.out.println("-> Күй: " + currentState.getClass().getSimpleName().replace("State", "") 
+                               + " -> " + newState.getClass().getSimpleName().replace("State", ""));
+            this.currentState = newState;
+        }
+
+        public void selectTicket() { currentState.selectTicket(); }
+        public void insertMoney(double amount) { currentState.insertMoney(amount); }
+        public void dispenseTicket() { currentState.dispenseTicket(); }
+        public void cancelTransaction() { currentState.cancelTransaction(); }
+
+        public double getTicketPrice() { return TICKET_PRICE; }
+        public double getCurrentBalance() { return currentBalance; }
+        public VendingMachineState getIdleState() { return idleState; }
+        public VendingMachineState getWaitingForMoneyState() { return waitingForMoneyState; }
+        public VendingMachineState getMoneyReceivedState() { return moneyReceivedState; }
+        public VendingMachineState getTicketDispensedState() { return ticketDispensedState; }
+        public VendingMachineState getTransactionCanceledState() { return transactionCanceledState; }
+        
+        public void setCurrentBalance(double currentBalance) { this.currentBalance = currentBalance; }
+    }
+
+    public static class IdleState implements VendingMachineState {
+        private final TicketVendingMachine machine;
+        public IdleState(TicketVendingMachine machine) { this.machine = machine; }
+
+        @Override
+        public void selectTicket() {
+            System.out.println("Билет таңдалды. Құны: " + machine.getTicketPrice() + " KZT.");
+            machine.setState(machine.getWaitingForMoneyState());
+        }
+        @Override
+        public void insertMoney(double amount) { System.out.println("Қате: Алдымен билетті таңдаңыз."); }
+        @Override
+        public void dispenseTicket() { System.out.println("Қате: Транзакция басталмады."); }
+        @Override
+        public void cancelTransaction() { System.out.println("Қате: Тоқтатуға болатын транзакция жоқ."); }
+    }
+
+    public static class WaitingForMoneyState implements VendingMachineState {
+        private final TicketVendingMachine machine;
+        public WaitingForMoneyState(TicketVendingMachine machine) { this.machine = machine; }
+
+        @Override
+        public void selectTicket() { System.out.println("Ескерту: Билет таңдалған."); }
+
+        @Override
+        public void insertMoney(double amount) {
+            double newBalance = machine.getCurrentBalance() + amount;
+            machine.setCurrentBalance(newBalance);
+            System.out.println("Салынды: " + amount + " KZT. Жалпы баланс: " + newBalance + " KZT.");
+            
+            if (newBalance >= machine.getTicketPrice()) {
+                machine.setState(machine.getMoneyReceivedState());
+            } else {
+                System.out.println("Қалған сома: " + (machine.getTicketPrice() - newBalance) + " KZT.");
+            }
+        }
+
+        @Override
+        public void dispenseTicket() { System.out.println("Қате: Ақша толық салынбады."); }
+
+        @Override
+        public void cancelTransaction() {
+            double refund = machine.getCurrentBalance();
+            System.out.println("Транзакция тоқтатылды. Қайтарылған сома: " + refund + " KZT.");
+            machine.setCurrentBalance(0.0);
+            machine.setState(machine.getTransactionCanceledState());
+        }
+    }
+
+    public static class MoneyReceivedState implements VendingMachineState {
+        private final TicketVendingMachine machine;
+        public MoneyReceivedState(TicketVendingMachine machine) { this.machine = machine; }
+
+        @Override
+        public void selectTicket() { System.out.println("Ескерту: Қажетті сома салынған."); }
+        @Override
+        public void insertMoney(double amount) { 
+            machine.setCurrentBalance(machine.getCurrentBalance() + amount);
+            System.out.println("Ескерту: Қосымша салынды: " + amount + " KZT.");
+        }
+
+        @Override
+        public void dispenseTicket() {
+            double change = machine.getCurrentBalance() - machine.getTicketPrice();
+            machine.setCurrentBalance(0.0);
+            
+            System.out.println("Билет берілді. Рахмет!");
+            if (change > 0) {
+                System.out.println("Қайтарылған сома: " + change + " KZT.");
+            }
+            
+            machine.setState(machine.getTicketDispensedState());
+        }
+
+        @Override
+        public void cancelTransaction() {
+            double refund = machine.getCurrentBalance();
+            machine.setCurrentBalance(0.0);
+            System.out.println("Транзакция тоқтатылды. Қайтарылған сома: " + refund + " KZT.");
+            machine.setState(machine.getTransactionCanceledState());
+        }
+    }
+
+    public static class TicketDispensedState implements VendingMachineState {
+        private final TicketVendingMachine machine;
+        public TicketDispensedState(TicketVendingMachine machine) { this.machine = machine; }
+
+        @Override
+        public void selectTicket() {
+            System.out.println("Жаңа транзакция басталды.");
+            machine.setState(machine.getIdleState());
+        }
+        @Override
+        public void insertMoney(double amount) { System.out.println("Қате: Транзакция аяқталды."); }
+        @Override
+        public void dispenseTicket() { System.out.println("Қате: Билет бұрын берілген."); }
+        @Override
+        public void cancelTransaction() { System.out.println("Қате: Транзакция аяқталды."); }
+    }
+    
+    public static class TransactionCanceledState implements VendingMachineState {
+        private final TicketVendingMachine machine;
+        public TransactionCanceledState(TicketVendingMachine machine) { this.machine = machine; }
+
+        @Override
+        public void selectTicket() {
+            System.out.println("Транзакция тоқтатылды. Жаңадан бастау.");
+            machine.setState(machine.getIdleState());
+        }
+        @Override
+        public void insertMoney(double amount) { System.out.println("Қате: Транзакция тоқтатылған."); }
+        @Override
+        public void dispenseTicket() { System.out.println("Қате: Билет берілмейді."); }
+        @Override
+        public void cancelTransaction() { System.out.println("Қате: Транзакция бұрын тоқтатылған."); }
+    }
+
+    public static void main(String[] args) {
+        TicketVendingMachine machine = new TicketVendingMachine();
+        System.out.println("Билет құны: " + machine.getTicketPrice() + " KZT");
+
+        // 1. Сәтті транзакция
+        System.out.println("\n--- 1. Сәтті транзакция (500 KZT) ---");
+        machine.selectTicket();      
+        machine.insertMoney(300.0);
+        machine.insertMoney(200.0);   
+        machine.dispenseTicket();     
+        
+        machine.selectTicket();       
+
+        // 2. Тоқтату
+        System.out.println("\n 2. Тоқтату сценарийі (400 KZT қайтарылады) ");
+        machine.selectTicket();       
+        machine.insertMoney(400.0);
+        machine.cancelTransaction();  
+        
+        machine.selectTicket();       
+    }
+}
